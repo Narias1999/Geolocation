@@ -58,6 +58,7 @@ function getCurrentPos() {
     }
     return new Promise((rsl, rj) => {
         navigator.geolocation.getCurrentPosition((res) => {
+            console.log(res)
             const lat = res.coords.latitude
             const lng = res.coords.longitude
             rsl({lat, lng})
@@ -79,6 +80,7 @@ async function getCoords(place) {
     const res = await fetch(`${baseURL}geocode/json?address=${place}&key=${key}`)
     console.log(res.type)
     const json = await res.json()
+    console.log(json)
     return json.results[0].geometry.location
 }
 async function putMarker(conf) {
