@@ -1,4 +1,4 @@
-let map, routeService, routeRender
+let map, routeService, routeRender, autocompleteService
 const txtCity = document.getElementById('city')
 const citys = document.getElementById('citys')
 const key = 'AIzaSyBHL_1DJMdMTtzzB5fzW5QLrZ3eEJX7Yqc'
@@ -7,6 +7,9 @@ const button = document.getElementById('button')
 let predictions = []
 let markers = []
 const initialCenter = {lat: 37.766667, lng: -122.433333}
+
+const http = leftURL => fetch(`${baseURL}${leftURL}`)
+
 button.addEventListener('click', e => {
     if (predictions.length) {
         putMarker({place: txtCity.value})
@@ -35,10 +38,18 @@ function setText(text) {
 }
 async function getCitys(city) {
     city = normalize(city)
-    const mode = 'no-cors'
-    let res = await fetch(`${baseURL}place/autocomplete/json?input=${city}&types=(cities)&key=${key}`)
-    res = await res.json()
-    predictions = res.predictions
+    let promise = new Promise((rs, rj) => {
+        autocompleteService.getQueryPredictions({ input: city },
+        (predictions, status) => {
+            if (status != google.maps.places.PlacesServiceStatus.OK) {
+                return rj(status)
+            } else return rs (predictions)
+        })
+    })
+
+
+    predictions = await promise
+    console.log(predictions)
     if(predictions.length){
         citys.style.display = 'block'
         if(citys.childNodes.length) citys.removeChild(citys.childNodes[0])
@@ -71,13 +82,14 @@ function initMap() {
         center: initialCenter,
         zoom:10
     })
+    autocompleteService = new google.maps.places.AutocompleteService()
     routeService = new google.maps.DirectionsService()
     routeRender = new google.maps.DirectionsRenderer()
     routeRender.setMap(map)
 }
 const normalize = sentence => sentence.split(' ').join('+')
 async function getCoords(place) {
-    const res = await fetch(`${baseURL}geocode/json?address=${place}&key=${key}`)
+    const res = await http(`geocode/json?address=${place}&key=${key}`)
     console.log(res.type)
     const json = await res.json()
     console.log(json)
@@ -111,7 +123,6 @@ function createRoute(origin, destination) {
         destination,
         travelMode: 'DRIVING'
     }
-    console.log(routeService)
     routeService.route(request, (res, status) => {
         console.log(res,status)
         if (status == 'OK'){
